@@ -1,0 +1,293 @@
+import javafx.application.Application;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.CycleMethod;
+import javafx.scene.paint.LinearGradient;
+import javafx.scene.paint.Stop;
+import javafx.scene.shape.Circle;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.TextAlignment;
+import javafx.stage.Stage;
+
+/**
+ * Poster for UN Sustainable Development Goal 13: Climate Action.
+ * Built only with JavaFX controls and layout panes (no images, no FXML).
+ *
+ * Run (with JavaFX SDK installed):
+ *   javac --module-path $PATH_TO_FX --add-modules javafx.controls ClimateActionPoster.java
+ *   java  --module-path $PATH_TO_FX --add-modules javafx.controls ClimateActionPoster
+ */
+public class ClimateActionPoster extends Application {
+
+    private static final String GREEN = "#3F7E44";
+    private static final String DARK = "#1B3A1F";
+    private static final String CREAM = "#F6F1E4";
+
+    @Override
+    public void start(Stage stage) {
+        VBox root = new VBox(18, buildHeader(), buildBody(), buildFooter());
+        root.setPadding(new Insets(0, 0, 18, 0));
+        root.setStyle("-fx-background-color: " + CREAM + ";");
+
+        ScrollPane scroll = new ScrollPane(root);
+        scroll.setFitToWidth(true);
+        scroll.setStyle("-fx-background-color: " + CREAM + ";");
+
+        stage.setTitle("SDG 13 - Climate Action Poster");
+        stage.setScene(new Scene(scroll, 980, 860));
+        stage.show();
+    }
+
+    // ---------------------------------------------------------------- header
+    private VBox buildHeader() {
+        Label goal = new Label("SUSTAINABLE DEVELOPMENT GOAL 13");
+        goal.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        goal.setTextFill(Color.web("#D9EAD3"));
+
+        Label title = new Label("CLIMATE ACTION");
+        title.setFont(Font.font("Impact", FontWeight.BOLD, 72));
+        title.setTextFill(Color.WHITE);
+
+        Label tagline = new Label("Take urgent action to combat climate change and its impacts.");
+        tagline.setFont(Font.font("Georgia", 20));
+        tagline.setTextFill(Color.web("#F6F1E4"));
+
+        // decorative "planet" built from controls-friendly shapes
+        Circle planet = new Circle(46, Color.web("#2E86C1"));
+        planet.setStroke(Color.WHITE);
+        planet.setStrokeWidth(4);
+        Circle land = new Circle(18, Color.web("#58A55C"));
+        StackPane globe = new StackPane(planet, land);
+        Tooltip.install(globe, new Tooltip("One planet. No Plan B."));
+
+        VBox text = new VBox(4, goal, title, tagline);
+        HBox row = new HBox(30, globe, text);
+        row.setAlignment(Pos.CENTER_LEFT);
+
+        VBox header = new VBox(row);
+        header.setPadding(new Insets(30, 40, 30, 40));
+        header.setBackground(new Background(new BackgroundFill(
+                new LinearGradient(0, 0, 1, 1, true, CycleMethod.NO_CYCLE,
+                        new Stop(0, Color.web(GREEN)), new Stop(1, Color.web(DARK))),
+                CornerRadii.EMPTY, Insets.EMPTY)));
+        return header;
+    }
+
+    // ------------------------------------------------------------------ body
+    private HBox buildBody() {
+        VBox left = buildSimulator();
+        VBox right = buildPledge();
+        HBox.setHgrow(left, Priority.ALWAYS);
+        HBox.setHgrow(right, Priority.ALWAYS);
+        left.setPrefWidth(480);
+        right.setPrefWidth(420);
+
+        VBox facts = buildFacts();
+        VBox leftColumn = new VBox(18, facts, left);
+        HBox body = new HBox(22, leftColumn, right);
+        body.setPadding(new Insets(0, 40, 0, 40));
+        HBox.setHgrow(leftColumn, Priority.ALWAYS);
+        return body;
+    }
+
+    private VBox buildFacts() {
+        Label heading = sectionTitle("WHY IT MATTERS");
+
+        HBox cards = new HBox(12,
+                statCard("1.1°C+", "global warming already measured above pre-industrial levels"),
+                statCard("1.5°C", "limit set by the Paris Agreement to avoid the worst impacts"),
+                statCard("45%", "cut in CO\u2082 emissions needed by 2030 (vs 2010) to stay on track"));
+        for (var n : cards.getChildren()) HBox.setHgrow(n, Priority.ALWAYS);
+
+        return card(heading, cards);
+    }
+
+    private VBox statCard(String big, String small) {
+        Label number = new Label(big);
+        number.setFont(Font.font("Arial", FontWeight.EXTRA_BOLD, 34));
+        number.setTextFill(Color.web(GREEN));
+
+        Label desc = new Label(small);
+        desc.setWrapText(true);
+        desc.setTextAlignment(TextAlignment.CENTER);
+        desc.setFont(Font.font("Arial", 13));
+
+        VBox box = new VBox(6, number, desc);
+        box.setAlignment(Pos.CENTER);
+        box.setPadding(new Insets(12));
+        box.setMaxWidth(Double.MAX_VALUE);
+        box.setStyle("-fx-background-color: #EAF3E6; -fx-background-radius: 10;");
+        return box;
+    }
+
+    /** Interactive: drag the slider to see how warming changes the risk level. */
+    private VBox buildSimulator() {
+        Label heading = sectionTitle("HOW MUCH WARMING?");
+
+        Slider slider = new Slider(1.0, 4.0, 1.5);
+        slider.setShowTickLabels(true);
+        slider.setShowTickMarks(true);
+        slider.setMajorTickUnit(0.5);
+        slider.setMinorTickCount(1);
+        slider.setSnapToTicks(true);
+
+        Label value = new Label();
+        value.setFont(Font.font("Arial", FontWeight.BOLD, 26));
+
+        ProgressBar risk = new ProgressBar();
+        risk.setMaxWidth(Double.MAX_VALUE);
+        risk.setPrefHeight(22);
+
+        Label riskLabel = new Label();
+        riskLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+
+        Label message = new Label();
+        message.setWrapText(true);
+        message.setFont(Font.font("Arial", 14));
+        message.setMinHeight(70);
+
+        Runnable update = () -> {
+            double t = slider.getValue();
+            value.setText(String.format("+%.1f°C", t));
+            risk.setProgress((t - 1.0) / 3.0);
+            String color;
+            String level;
+            String text;
+            if (t <= 1.5) {
+                color = "#3F7E44"; level = "Risk: HIGH, but manageable";
+                text = "The Paris Agreement goal. Impacts are still serious, yet far fewer "
+                        + "ecosystems and communities are pushed past their limits.";
+            } else if (t <= 2.5) {
+                color = "#E0A100"; level = "Risk: VERY HIGH";
+                text = "More frequent heatwaves, heavier floods and droughts, and growing "
+                        + "pressure on food and water supplies.";
+            } else {
+                color = "#C0392B"; level = "Risk: SEVERE";
+                text = "Widespread loss of coral reefs and ice, sea-level rise threatening "
+                        + "coastal cities, and large-scale disruption to livelihoods.";
+            }
+            risk.setStyle("-fx-accent: " + color + ";");
+            riskLabel.setText(level);
+            riskLabel.setTextFill(Color.web(color));
+            value.setTextFill(Color.web(color));
+            message.setText(text);
+        };
+        slider.valueProperty().addListener((o, a, b) -> update.run());
+        update.run();
+
+        Label hint = new Label("Drag the slider to explore possible futures \u2193");
+        hint.setFont(Font.font("Arial", 12));
+        hint.setTextFill(Color.GRAY);
+
+        return card(heading, hint, value, slider, risk, riskLabel, message);
+    }
+
+    /** Interactive: tick actions you will commit to; the bar fills as you go. */
+    private VBox buildPledge() {
+        Label heading = sectionTitle("WHAT CAN YOU DO?");
+
+        String[] actions = {
+                "Walk, cycle or use public transport",
+                "Switch off unused lights & devices",
+                "Choose renewable energy where possible",
+                "Cut food waste; eat more plant-based meals",
+                "Plant a tree or protect green spaces",
+                "Reuse, repair and recycle"
+        };
+
+        ProgressBar progress = new ProgressBar(0);
+        progress.setMaxWidth(Double.MAX_VALUE);
+        progress.setPrefHeight(22);
+        progress.setStyle("-fx-accent: " + GREEN + ";");
+
+        Label count = new Label("0 of " + actions.length + " actions pledged");
+        count.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+
+        Label result = new Label("Every small action adds up.");
+        result.setWrapText(true);
+        result.setFont(Font.font("Georgia", 15));
+        result.setTextFill(Color.web(DARK));
+
+        VBox checks = new VBox(10);
+        CheckBox[] boxes = new CheckBox[actions.length];
+        for (int i = 0; i < actions.length; i++) {
+            boxes[i] = new CheckBox(actions[i]);
+            boxes[i].setFont(Font.font("Arial", 14));
+            boxes[i].setWrapText(true);
+            checks.getChildren().add(boxes[i]);
+        }
+
+        Runnable refresh = () -> {
+            int n = 0;
+            for (CheckBox b : boxes) if (b.isSelected()) n++;
+            progress.setProgress((double) n / actions.length);
+            count.setText(n + " of " + actions.length + " actions pledged");
+            if (n == 0) result.setText("Every small action adds up.");
+            else if (n < actions.length) result.setText("Great start! Keep going.");
+            else result.setText("Climate champion! Now inspire a friend.");
+        };
+        for (CheckBox b : boxes) b.selectedProperty().addListener((o, a, c) -> refresh.run());
+
+        Button pledge = new Button("I'M IN \u2714");
+        pledge.setStyle("-fx-background-color: " + GREEN + "; -fx-text-fill: white; "
+                + "-fx-font-weight: bold; -fx-font-size: 15px; -fx-background-radius: 20;");
+        pledge.setPadding(new Insets(8, 22, 8, 22));
+        pledge.setOnAction(e -> {
+            for (CheckBox b : boxes) b.setSelected(true);
+        });
+
+        Button reset = new Button("Reset");
+        reset.setOnAction(e -> {
+            for (CheckBox b : boxes) b.setSelected(false);
+        });
+
+        HBox buttons = new HBox(10, pledge, reset);
+        buttons.setAlignment(Pos.CENTER_LEFT);
+
+        return card(heading, checks, new Separator(), count, progress, result, buttons);
+    }
+
+    // ---------------------------------------------------------------- footer
+    private VBox buildFooter() {
+        Label slogan = new Label("THERE IS NO PLANET B");
+        slogan.setFont(Font.font("Impact", 30));
+        slogan.setTextFill(Color.web(GREEN));
+
+        Hyperlink link = new Hyperlink("Learn more: un.org/sustainabledevelopment/climate-change");
+        link.setOnAction(e -> getHostServices()
+                .showDocument("https://www.un.org/sustainabledevelopment/climate-change/"));
+
+        Label credit = new Label("Poster built with JavaFX controls \u2022 SDG 13: Climate Action");
+        credit.setFont(Font.font("Arial", 12));
+        credit.setTextFill(Color.GRAY);
+
+        VBox footer = new VBox(4, slogan, link, credit);
+        footer.setAlignment(Pos.CENTER);
+        return footer;
+    }
+
+    // --------------------------------------------------------------- helpers
+    private Label sectionTitle(String text) {
+        Label l = new Label(text);
+        l.setFont(Font.font("Arial", FontWeight.EXTRA_BOLD, 18));
+        l.setTextFill(Color.web(DARK));
+        return l;
+    }
+
+    private VBox card(javafx.scene.Node... children) {
+        VBox box = new VBox(12, children);
+        box.setPadding(new Insets(18));
+        box.setStyle("-fx-background-color: white; -fx-background-radius: 14; "
+                + "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 10, 0, 0, 3);");
+        return box;
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
